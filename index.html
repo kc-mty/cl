@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPO Hardware Quest</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    .font-heading {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+
+    /* Card Flip Mechanics */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+
+    .card-flip-inner {
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-style: preserve-3d;
+    }
+
+    .card-flipped .card-flip-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+    }
+
+    /* Drag and Drop Hover Glows */
+    .bucket-hover {
+      transform: scale(1.02);
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Custom Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .animate-shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* Custom Toast Slide */
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-slideDown {
+      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchTab('modes')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div>
+          <h1 class="font-heading text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+            IPO Hardware Quest
+          </h1>
+          <p class="text-xs text-slate-500 hidden sm:block font-medium">Input • Processing • Output • Storage</p>
+        </div>
+      </div>
+
+      <!-- Controls & Quick Menu -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="soundToggle" onclick="toggleSound()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold transition flex items-center gap-2">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-indigo-600"></i>
+          <span class="hidden sm:inline">Sound: ON</span>
+        </button>
+        <button onclick="switchTab('modes')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm shadow-indigo-600/30 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-gamepad"></i>
+          <span>Game Modes</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none w-full max-w-md px-4"></div>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+    <!-- MODE SELECTION MENU -->
+    <div id="modesView" class="space-y-8 animate-fadeIn">
+      <!-- Welcome Hero Banner -->
+      <div class="text-center max-w-3xl mx-auto space-y-3 pt-2">
+        <span class="px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-graduation-cap"></i> Interactive Computer Science Module
+        </span>
+        <h2 class="font-heading text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+          Master Computer Hardware
+        </h2>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          Explore and master the 4 core components of computer hardware: <b>Input</b>, <b>Processing</b>, <b>Output</b>, and <b>Storage</b> through 3 engaging interactive games!
+        </p>
+      </div>
+
+      <!-- Mode Selection Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        
+        <!-- Mode 1: Flashcards -->
+        <div onclick="startFlashcardMode()" class="group relative bg-white hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-2xl p-6 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 text-2xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-heading text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors">1. Flashcard Inspector</h3>
+              <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">Study</span>
+            </div>
+            <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+              Review all 17 hardware devices with 3D flip cards. Examine device functions, icons, and classifications.
+            </p>
+          </div>
+          <div class="mt-6 flex items-center text-xs font-bold text-blue-600 gap-2 group-hover:translate-x-1 transition-transform">
+            <span>START STUDYING</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <!-- Mode 2: Sorting Challenge -->
+        <div onclick="startSortMode()" class="group relative bg-white hover:bg-purple-50/40 border border-slate-200 hover:border-purple-300 rounded-2xl p-6 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-600 text-2xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-heading text-xl font-bold text-slate-800 group-hover:text-purple-600 transition-colors">2. Sorting Bucket Game</h3>
+              <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">Practice</span>
+            </div>
+            <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+              Drag & drop or tap hardware items into their correct IPO+S bucket! Test your speed and accuracy.
+            </p>
+          </div>
+          <div class="mt-6 flex items-center text-xs font-bold text-purple-600 gap-2 group-hover:translate-x-1 transition-transform">
+            <span>PLAY SORTING GAME</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <!-- Mode 3: Hardware Quiz Arena -->
+        <div onclick="startQuizMode()" class="group relative bg-white hover:bg-pink-50/40 border border-slate-200 hover:border-pink-300 rounded-2xl p-6 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-pink-100 border border-pink-200 flex items-center justify-center text-pink-600 text-2xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div class="flex items-center justify-between">
+              <h3 class="font-heading text-xl font-bold text-slate-800 group-hover:text-pink-600 transition-colors">3. Hardware Quiz Arena</h3>
+              <span class="text-xs font-bold text-pink-600 bg-pink-50 px-2.5 py-0.5 rounded-full border border-pink-100">Test</span>
+            </div>
+            <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+              Answer timed multiple-choice questions on hardware devices. Build streak multipliers and achieve top scores!
+            </p>
+          </div>
+          <div class="mt-6 flex items-center text-xs font-bold text-pink-600 gap-2 group-hover:translate-x-1 transition-transform">
+            <span>START QUIZ ARENA</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Concept Cheat Sheet -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="font-heading text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-lightbulb text-amber-500"></i> The IPO+S Concept Reference Sheet
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Input -->
+          <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/50">
+            <div class="font-bold text-blue-700 text-sm flex items-center gap-2 mb-1.5">
+              <i class="fa-solid fa-keyboard text-blue-600"></i> Input Devices
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Feeds data, sound, or user commands into the computer system (e.g., Mouse, Scanner, Webcam).
+            </p>
+          </div>
+          <!-- Processing -->
+          <div class="p-4 rounded-xl border border-purple-200 bg-purple-50/50">
+            <div class="font-bold text-purple-700 text-sm flex items-center gap-2 mb-1.5">
+              <i class="fa-solid fa-microchip text-purple-600"></i> Processing / Memory
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Executes instructions and holds active data temporarily for processing (e.g., CPU, RAM).
+            </p>
+          </div>
+          <!-- Output -->
+          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50">
+            <div class="font-bold text-emerald-700 text-sm flex items-center gap-2 mb-1.5">
+              <i class="fa-solid fa-desktop text-emerald-600"></i> Output Devices
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Displays, prints, or outputs processed data to human users (e.g., Monitor, Printer, Speaker).
+            </p>
+          </div>
+          <!-- Storage -->
+          <div class="p-4 rounded-xl border border-amber-200 bg-amber-50/50">
+            <div class="font-bold text-amber-700 text-sm flex items-center gap-2 mb-1.5">
+              <i class="fa-solid fa-hard-drive text-amber-600"></i> Storage Devices
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Saves files and programs permanently or semi-permanently for future use (e.g., SSD, Harddisk, Flash Drive).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODE 1: FLASHCARDS VIEW -->
+    <div id="flashcardsView" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div>
+          <h2 class="font-heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-blue-600"></i> Flashcard Inspector
+          </h2>
+          <p class="text-xs text-slate-500 font-medium">Click card or press <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px] font-mono">SPACE</kbd> to flip between question and answer</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Filter Dropdown -->
+          <select id="fcFilterSelect" onchange="filterFlashcards()" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs">
+            <option value="All">All Categories (17)</option>
+            <option value="Input">Input Devices</option>
+            <option value="Processing">Processing Devices</option>
+            <option value="Output">Output Devices</option>
+            <option value="Storage">Storage Devices</option>
+          </select>
+          <span id="flashcardCounter" class="text-xs font-bold px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">Card 1 / 17</span>
+        </div>
+      </div>
+
+      <!-- Flashcard Interactive Canvas -->
+      <div class="max-w-md mx-auto">
+        <div id="flashcardElement" onclick="flipCurrentCard()" class="perspective-1000 w-full h-[390px] cursor-pointer group">
+          <div id="cardInner" class="card-flip-inner relative w-full h-full rounded-3xl bg-white border border-slate-200 shadow-xl p-6 flex flex-col justify-between text-center select-none">
+            
+            <!-- Front Side -->
+            <div class="card-front absolute inset-0 p-6 flex flex-col justify-between items-center rounded-3xl bg-gradient-to-b from-white to-slate-50/80 border border-slate-200 shadow-md">
+              <div class="w-full flex justify-between items-center text-xs font-bold text-slate-400 tracking-wider">
+                <span id="fcNumber" class="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">Device #1</span>
+                <span class="text-indigo-600 hover:underline flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Click to flip</span>
+              </div>
+
+              <div class="my-auto flex flex-col items-center space-y-4">
+                <div id="fcIconBox" class="w-24 h-24 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-5xl text-indigo-600 shadow-inner group-hover:scale-105 transition-transform">
+                  <i id="fcIcon" class="fa-solid fa-barcode"></i>
+                </div>
+                <div>
+                  <h3 id="fcFrontHint" class="font-heading text-2xl font-bold text-slate-800">Barcode Scanner</h3>
+                  <p class="text-xs text-slate-500 font-medium mt-1">What IPO category does this belong to?</p>
+                </div>
+              </div>
+
+              <div class="w-full text-center text-xs text-slate-400 font-medium bg-slate-100/70 py-2 rounded-xl">
+                💡 Press <kbd class="px-1 bg-white border border-slate-300 rounded">←</kbd> <kbd class="px-1 bg-white border border-slate-300 rounded">→</kbd> to navigate cards
+              </div>
+            </div>
+
+            <!-- Back Side -->
+            <div class="card-back absolute inset-0 p-6 flex flex-col justify-between items-center rounded-3xl bg-white border-2 border-indigo-500 shadow-2xl">
+              <div class="w-full flex justify-between items-center">
+                <span id="fcCategoryBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                  INPUT DEVICE
+                </span>
+                <span class="text-xs text-slate-400"><i class="fa-solid fa-rotate"></i> Tap to flip back</span>
+              </div>
+
+              <div class="my-auto flex flex-col items-center space-y-3">
+                <h3 id="fcDeviceTitle" class="font-heading text-2xl font-bold text-slate-800">Barcode Scanner</h3>
+                <p id="fcDescription" class="text-slate-600 text-xs sm:text-sm leading-relaxed px-2">
+                  Captures optical barcode data and feeds digital numbers into a computer system.
+                </p>
+                <div class="pt-2 w-full">
+                  <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Primary Role</span>
+                  <div id="fcFunction" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-xl border border-indigo-100 mt-1">
+                    Capturing & Inputting Data
+                  </div>
+                </div>
+              </div>
+
+              <div class="w-full text-center text-xs font-bold text-indigo-600">
+                <i class="fa-solid fa-circle-check"></i> Form 1 Curriculum Verified
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Controls Nav -->
+        <div class="flex items-center justify-between mt-6">
+          <button onclick="prevFlashcard()" class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition flex items-center gap-2 border border-slate-200 shadow-2xs">
+            <i class="fa-solid fa-chevron-left"></i> Previous
+          </button>
+          <button onclick="shuffleFlashcards()" class="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs sm:text-sm transition flex items-center gap-2 border border-amber-200 shadow-2xs">
+            <i class="fa-solid fa-shuffle"></i> Shuffle
+          </button>
+          <button onclick="nextFlashcard()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-md shadow-indigo-600/20">
+            Next <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODE 2: SORTING GAME VIEW -->
+    <div id="sortView" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div>
+          <h2 class="font-heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-boxes-stacked text-purple-600"></i> Speed Sorting Challenge
+          </h2>
+          <p class="text-xs text-slate-500 font-medium">Drag the card or click a category bucket below to sort!</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-right bg-white px-4 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Sorted Progress</span>
+            <span id="sortScore" class="font-heading text-lg font-bold text-purple-600">0 / 17</span>
+          </div>
+          <button onclick="resetSortGame()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 transition shadow-2xs flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-rotate-right text-indigo-600"></i> Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Draggable Item Card -->
+      <div id="sortActiveItemContainer" class="max-w-md mx-auto bg-white border-2 border-indigo-400 rounded-3xl p-5 text-center shadow-lg relative transition-all">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+            Item To Classify
+          </span>
+          <span class="text-xs text-slate-400 font-semibold"><i class="fa-solid fa-hand-pointer"></i> Drag or Click Bucket</span>
+        </div>
+        
+        <!-- Draggable Card Element -->
+        <div id="sortDraggableCard" draggable="true" ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)" class="flex items-center justify-center gap-4 my-3 p-4 bg-gradient-to-r from-slate-50 to-indigo-50/30 rounded-2xl border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md transition">
+          <div id="sortItemIcon" class="w-14 h-14 rounded-xl bg-white border border-indigo-100 flex items-center justify-center text-3xl text-indigo-600 shadow-sm">
+            <i class="fa-solid fa-barcode"></i>
+          </div>
+          <div class="text-left flex-grow">
+            <h4 id="sortItemTitle" class="font-heading text-lg font-bold text-slate-800">Barcode Scanner</h4>
+            <p id="sortItemDesc" class="text-xs text-slate-500 font-medium">Reads barcodes at store counters</p>
+          </div>
+          <div class="text-slate-300 text-lg">
+            <i class="fa-solid fa-grip-vertical"></i>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500 font-medium">Tap any of the 4 category buckets below to drop this device:</p>
+      </div>
+
+      <!-- Game Completion Screen -->
+      <div id="sortCompleteBanner" class="hidden max-w-md mx-auto bg-white border-2 border-emerald-400 rounded-3xl p-8 text-center space-y-4 shadow-xl">
+        <div class="w-20 h-20 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-600 flex items-center justify-center text-4xl mx-auto shadow-inner">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3 class="font-heading text-3xl font-extrabold text-slate-800">All Devices Sorted!</h3>
+        <p class="text-slate-600 text-sm">You categorized all 17 hardware components correctly!</p>
+        <button onclick="resetSortGame()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/30 transition">
+          Play Again
+        </button>
+      </div>
+
+      <!-- 4 Category Buckets -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        
+        <!-- Input Bucket -->
+        <div onclick="classifyActiveItem('Input')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Input')" class="bg-white border-2 border-blue-200 hover:border-blue-400 rounded-2xl p-4 flex flex-col justify-between min-h-[220px] transition cursor-pointer shadow-sm hover:shadow-md group">
+          <div>
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-blue-100">
+              <h3 class="font-heading text-lg font-bold text-blue-700 flex items-center gap-2">
+                <i class="fa-solid fa-keyboard text-blue-600"></i> INPUT
+              </h3>
+              <span id="countInput" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">0</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium mb-3">Captures data into computer</p>
+            <div id="bucketInput" class="space-y-1.5 flex flex-col"></div>
+          </div>
+          <div class="mt-4 pt-2 border-t border-dashed border-blue-200 text-center">
+            <span class="text-xs font-bold text-blue-600 group-hover:underline">+ Drop Input Here</span>
+          </div>
+        </div>
+
+        <!-- Processing Bucket -->
+        <div onclick="classifyActiveItem('Processing')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Processing')" class="bg-white border-2 border-purple-200 hover:border-purple-400 rounded-2xl p-4 flex flex-col justify-between min-h-[220px] transition cursor-pointer shadow-sm hover:shadow-md group">
+          <div>
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-purple-100">
+              <h3 class="font-heading text-lg font-bold text-purple-700 flex items-center gap-2">
+                <i class="fa-solid fa-microchip text-purple-600"></i> PROCESSING
+              </h3>
+              <span id="countProcessing" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">0</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium mb-3">Calculates or holds instructions</p>
+            <div id="bucketProcessing" class="space-y-1.5 flex flex-col"></div>
+          </div>
+          <div class="mt-4 pt-2 border-t border-dashed border-purple-200 text-center">
+            <span class="text-xs font-bold text-purple-600 group-hover:underline">+ Drop Processing Here</span>
+          </div>
+        </div>
+
+        <!-- Output Bucket -->
+        <div onclick="classifyActiveItem('Output')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Output')" class="bg-white border-2 border-emerald-200 hover:border-emerald-400 rounded-2xl p-4 flex flex-col justify-between min-h-[220px] transition cursor-pointer shadow-sm hover:shadow-md group">
+          <div>
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-emerald-100">
+              <h3 class="font-heading text-lg font-bold text-emerald-700 flex items-center gap-2">
+                <i class="fa-solid fa-desktop text-emerald-600"></i> OUTPUT
+              </h3>
+              <span id="countOutput" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">0</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium mb-3">Displays/prints processed results</p>
+            <div id="bucketOutput" class="space-y-1.5 flex flex-col"></div>
+          </div>
+          <div class="mt-4 pt-2 border-t border-dashed border-emerald-200 text-center">
+            <span class="text-xs font-bold text-emerald-600 group-hover:underline">+ Drop Output Here</span>
+          </div>
+        </div>
+
+        <!-- Storage Bucket -->
+        <div onclick="classifyActiveItem('Storage')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'Storage')" class="bg-white border-2 border-amber-200 hover:border-amber-400 rounded-2xl p-4 flex flex-col justify-between min-h-[220px] transition cursor-pointer shadow-sm hover:shadow-md group">
+          <div>
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-amber-100">
+              <h3 class="font-heading text-lg font-bold text-amber-700 flex items-center gap-2">
+                <i class="fa-solid fa-hard-drive text-amber-600"></i> STORAGE
+              </h3>
+              <span id="countStorage" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">0</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium mb-3">Retains files long term</p>
+            <div id="bucketStorage" class="space-y-1.5 flex flex-col"></div>
+          </div>
+          <div class="mt-4 pt-2 border-t border-dashed border-amber-200 text-center">
+            <span class="text-xs font-bold text-amber-600 group-hover:underline">+ Drop Storage Here</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODE 3: QUIZ ARENA VIEW -->
+    <div id="quizView" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-3 border-b border-slate-200">
+        <div>
+          <h2 class="font-heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-trophy text-pink-600"></i> Hardware Quiz Arena
+          </h2>
+          <p class="text-xs text-slate-500 font-medium">Answer 10 randomized hardware questions before time runs out!</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 text-center shadow-2xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Streak</span>
+            <span id="quizStreak" class="font-heading text-base font-bold text-pink-600">🔥 0</span>
+          </div>
+          <div class="bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 text-center shadow-2xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase block">Score</span>
+            <span id="quizScore" class="font-heading text-base font-bold text-amber-600">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-2xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+        
+        <!-- Timer & Question Bar -->
+        <div class="w-full bg-slate-100 h-2.5 rounded-full mb-6 overflow-hidden">
+          <div id="quizProgressBar" class="bg-gradient-to-r from-pink-500 to-indigo-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <div id="quizQuestionArea" class="space-y-6">
+          <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+            <span id="quizQuestionTracker">Question 1 of 10</span>
+            <span id="quizTimer" class="px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-mono font-bold text-xs">⏱️ 15s</span>
+          </div>
+
+          <!-- Question Prompt -->
+          <div class="space-y-3">
+            <div id="quizDeviceBadge" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-bold">
+              <i id="quizDeviceIcon" class="fa-solid fa-print"></i>
+              <span id="quizDeviceTitle">Printer</span>
+            </div>
+            <h3 id="quizQuestionText" class="font-heading text-xl sm:text-2xl font-bold text-slate-800 leading-snug">
+              What category does this computer device belong to?
+            </h3>
+          </div>
+
+          <!-- Options Grid -->
+          <div id="quizOptionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <!-- Dynamic buttons generated in JS -->
+          </div>
+
+          <!-- Feedback Box -->
+          <div id="quizFeedbackBox" class="hidden p-4 rounded-2xl text-sm font-medium border transition-all">
+            <p id="quizFeedbackText"></p>
+          </div>
+        </div>
+
+        <!-- Quiz Finished View -->
+        <div id="quizResultsArea" class="hidden text-center py-6 space-y-4">
+          <div class="w-20 h-20 rounded-full bg-amber-100 border border-amber-200 text-amber-600 flex items-center justify-center text-4xl mx-auto shadow-sm">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <h3 class="font-heading text-3xl font-extrabold text-slate-800">Quiz Completed!</h3>
+          <p id="quizFinalScoreText" class="text-slate-600 text-base">Your final score: <b>800 pts</b></p>
+          <div class="pt-4 flex justify-center gap-4">
+            <button onclick="startQuizMode()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition">
+              Try Again
+            </button>
+            <button onclick="switchTab('modes')" class="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm border border-slate-200 shadow-2xs transition">
+              Main Menu
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 font-medium">
+    IPO Hardware Quest • Designed for Form 1 Computer Hardware Curriculum
+  </footer>
+
+  <script>
+    // Hardware Dataset strictly aligned with syllabus
+    const HARDWARE_DATA = [
+      { id: 1, name: "Barcode Scanner", type: "Input", icon: "fa-barcode", desc: "Captures optical barcode data and feeds digital numbers into a computer system." },
+      { id: 2, name: "Monitor", type: "Output", icon: "fa-desktop", desc: "Displays visual images, videos, and graphical user interfaces produced by the system." },
+      { id: 3, name: "Keyboard", type: "Input", icon: "fa-keyboard", desc: "Primary text input device used to type alphanumeric characters and execute commands." },
+      { id: 4, name: "Printer", type: "Output", icon: "fa-print", desc: "Produces physical hard copies of digital documents and images on paper." },
+      { id: 5, name: "RAM (Random Access Memory)", type: "Processing", icon: "fa-memory", desc: "High-speed volatile memory that temporarily holds active program instructions for processing." },
+      { id: 6, name: "CD-ROM", type: "Storage", icon: "fa-compact-disc", desc: "Optical disc format used to store digital music, software, and data files long term." },
+      { id: 7, name: "Microphone", type: "Input", icon: "fa-microphone", desc: "Converts audio sound waves into digital audio signals for recording or calling." },
+      { id: 8, name: "Solid-State Drive (SSD)", type: "Storage", icon: "fa-hard-drive", desc: "Fast flash-based permanent storage drive with no moving mechanical parts." },
+      { id: 9, name: "Mouse", type: "Input", icon: "fa-computer-mouse", desc: "Handheld pointing device used to move cursor and select items on screen." },
+      { id: 10, name: "Projector", type: "Output", icon: "fa-video", desc: "Projects video images onto a large external screen or wall for presentations." },
+      { id: 11, name: "Headphone", type: "Output", icon: "fa-headphones", desc: "Personal audio output device worn over ears to listen to system sound privately." },
+      { id: 12, name: "Scanner", type: "Input", icon: "fa-scanner-gun", desc: "Digitizes physical document pages and photos into computer file formats." },
+      { id: 13, name: "Central Processing Unit (CPU)", type: "Processing", icon: "fa-microchip", desc: "The primary 'brain' of the computer that calculates calculations and executes logic." },
+      { id: 14, name: "Webcam", type: "Input", icon: "fa-webcam", desc: "Captures live video footage and sends it to computer for calls or recordings." },
+      { id: 15, name: "Speaker", type: "Output", icon: "fa-volume-high", desc: "Outputs sound waves and audio playing from games, music, or videos." },
+      { id: 16, name: "Harddisk", type: "Storage", icon: "fa-database", desc: "Magnetic storage drive used for storing files and operating system files permanently." },
+      { id: 17, name: "USB Flash Drive", type: "Storage", icon: "fa-usb", desc: "Portable plug-and-play flash memory drive for transferring computer files." }
+    ];
+
+    // Audio Synthesizer via Web Audio API
+    let soundEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, type, duration) {
+      if (!soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playCorrectSound() {
+      playTone(523.25, 'sine', 0.15); // C5
+      setTimeout(() => playTone(659.25, 'sine', 0.25), 100); // E5
+    }
+
+    function playWrongSound() {
+      playTone(220, 'sawtooth', 0.25); // A3
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const soundIcon = document.getElementById('soundIcon');
+      const soundToggleBtn = document.getElementById('soundToggle');
+      if (soundEnabled) {
+        soundIcon.className = 'fa-solid fa-volume-high text-indigo-600';
+        soundToggleBtn.querySelector('span').innerText = 'Sound: ON';
+      } else {
+        soundIcon.className = 'fa-solid fa-volume-xmark text-slate-400';
+        soundToggleBtn.querySelector('span').innerText = 'Sound: OFF';
+      }
+    }
+
+    // Toast Notification System (replaces alerts)
+    function showToast(message, isError = false) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `animate-slideDown p-4 rounded-2xl shadow-xl border text-xs sm:text-sm font-bold flex items-center gap-3 ${
+        isError 
+          ? 'bg-rose-50 border-rose-200 text-rose-800' 
+          : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+      }`;
+      toast.innerHTML = `
+        <i class="fa-solid ${isError ? 'fa-circle-xmark text-rose-600 text-base' : 'fa-circle-check text-emerald-600 text-base'}"></i>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Tab Navigation
+    function switchTab(tabName) {
+      document.getElementById('modesView').classList.add('hidden');
+      document.getElementById('flashcardsView').classList.add('hidden');
+      document.getElementById('sortView').classList.add('hidden');
+      document.getElementById('quizView').classList.add('hidden');
+
+      if (tabName === 'modes') document.getElementById('modesView').classList.remove('hidden');
+      if (tabName === 'flashcards') document.getElementById('flashcardsView').classList.remove('hidden');
+      if (tabName === 'sort') document.getElementById('sortView').classList.remove('hidden');
+      if (tabName === 'quiz') document.getElementById('quizView').classList.remove('hidden');
+    }
+
+    /* -------------------------------------------------------------
+       MODE 1: FLASHCARDS
+    ------------------------------------------------------------- */
+    let fcIndex = 0;
+    let fcList = [...HARDWARE_DATA];
+    let fcFlipped = false;
+
+    function startFlashcardMode() {
+      switchTab('flashcards');
+      document.getElementById('fcFilterSelect').value = "All";
+      filterFlashcards();
+    }
+
+    function filterFlashcards() {
+      const filterVal = document.getElementById('fcFilterSelect').value;
+      if (filterVal === 'All') {
+        fcList = [...HARDWARE_DATA];
+      } else {
+        fcList = HARDWARE_DATA.filter(item => item.type === filterVal);
+      }
+      fcIndex = 0;
+      renderFlashcard();
+    }
+
+    function renderFlashcard() {
+      if (fcList.length === 0) return;
+      const item = fcList[fcIndex];
+      fcFlipped = false;
+      document.getElementById('flashcardElement').classList.remove('card-flipped');
+
+      document.getElementById('flashcardCounter').innerText = `Card ${fcIndex + 1} / ${fcList.length}`;
+      document.getElementById('fcNumber').innerText = `Device #${item.id}`;
+      document.getElementById('fcIcon').className = `fa-solid ${item.icon}`;
+      document.getElementById('fcFrontHint').innerText = item.name;
+
+      // Back Details
+      document.getElementById('fcDeviceTitle').innerText = item.name;
+      document.getElementById('fcDescription').innerText = item.desc;
+      document.getElementById('fcFunction').innerText = getFunctionLabel(item.type);
+
+      const categoryBadge = document.getElementById('fcCategoryBadge');
+      categoryBadge.innerText = `${item.type.toUpperCase()} DEVICE`;
+      
+      if (item.type === 'Input') categoryBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200";
+      else if (item.type === 'Output') categoryBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200";
+      else if (item.type === 'Processing') categoryBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200";
+      else if (item.type === 'Storage') categoryBadge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200";
+    }
+
+    function getFunctionLabel(type) {
+      if (type === 'Input') return 'Capturing & Feeding Data into Computer';
+      if (type === 'Output') return 'Displaying or Outputting Data to User';
+      if (type === 'Processing') return 'Calculating & Executing System Data';
+      if (type === 'Storage') return 'Saving & Retaining Files Long Term';
+      return '';
+    }
+
+    function flipCurrentCard() {
+      fcFlipped = !fcFlipped;
+      const el = document.getElementById('flashcardElement');
+      if (fcFlipped) {
+        el.classList.add('card-flipped');
+        playTone(440, 'sine', 0.1);
+      } else {
+        el.classList.remove('card-flipped');
+        playTone(350, 'sine', 0.1);
+      }
+    }
+
+    function nextFlashcard() {
+      fcIndex = (fcIndex + 1) % fcList.length;
+      renderFlashcard();
+    }
+
+    function prevFlashcard() {
+      fcIndex = (fcIndex - 1 + fcList.length) % fcList.length;
+      renderFlashcard();
+    }
+
+    function shuffleFlashcards() {
+      fcList.sort(() => Math.random() - 0.5);
+      fcIndex = 0;
+      renderFlashcard();
+      playTone(587.33, 'triangle', 0.15);
+    }
+
+    /* -------------------------------------------------------------
+       MODE 2: SORTING GAME
+    ------------------------------------------------------------- */
+    let sortQueue = [];
+    let sortBuckets = { Input: [], Processing: [], Output: [], Storage: [] };
+    let currentSortItem = null;
+
+    function startSortMode() {
+      switchTab('sort');
+      resetSortGame();
+    }
+
+    function resetSortGame() {
+      sortQueue = [...HARDWARE_DATA].sort(() => Math.random() - 0.5);
+      sortBuckets = { Input: [], Processing: [], Output: [], Storage: [] };
+      document.getElementById('sortCompleteBanner').classList.add('hidden');
+      document.getElementById('sortActiveItemContainer').classList.remove('hidden');
+      updateSortUI();
+    }
+
+    function updateSortUI() {
+      ['Input', 'Processing', 'Output', 'Storage'].forEach(type => {
+        const bucketEl = document.getElementById(`bucket${type}`);
+        bucketEl.innerHTML = '';
+        sortBuckets[type].forEach(item => {
+          const chip = document.createElement('div');
+          chip.className = 'text-xs px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 flex items-center justify-between font-bold shadow-2xs';
+          chip.innerHTML = `<span><i class="fa-solid ${item.icon} text-slate-400 mr-1.5"></i>${item.name}</span> <i class="fa-solid fa-check text-emerald-600"></i>`;
+          bucketEl.appendChild(chip);
+        });
+        document.getElementById(`count${type}`).innerText = sortBuckets[type].length;
+      });
+
+      const totalDone = Object.values(sortBuckets).reduce((a, b) => a + b.length, 0);
+      document.getElementById('sortScore').innerText = `${totalDone} / ${HARDWARE_DATA.length}`;
+
+      if (sortQueue.length > 0) {
+        currentSortItem = sortQueue[0];
+        document.getElementById('sortItemTitle').innerText = currentSortItem.name;
+        document.getElementById('sortItemDesc').innerText = currentSortItem.desc;
+        document.getElementById('sortItemIcon').className = `fa-solid ${currentSortItem.icon}`;
+      } else {
+        currentSortItem = null;
+        document.getElementById('sortActiveItemContainer').classList.add('hidden');
+        document.getElementById('sortCompleteBanner').classList.remove('hidden');
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+    }
+
+    function classifyActiveItem(chosenCategory) {
+      if (!currentSortItem) return;
+
+      if (currentSortItem.type === chosenCategory) {
+        // Correct Choice
+        playCorrectSound();
+        showToast(`Correct! ${currentSortItem.name} deposited into ${chosenCategory}.`);
+        sortBuckets[chosenCategory].push(currentSortItem);
+        sortQueue.shift();
+        updateSortUI();
+      } else {
+        // Wrong Choice
+        playWrongSound();
+        const container = document.getElementById('sortActiveItemContainer');
+        container.classList.add('animate-shake');
+        setTimeout(() => container.classList.remove('animate-shake'), 400);
+        showToast(`Oops! "${currentSortItem.name}" is NOT a ${chosenCategory} device. Try again!`, true);
+      }
+    }
+
+    // HTML5 Drag and Drop Handler Functions
+    function handleDragStart(e) {
+      e.dataTransfer.setData("text/plain", currentSortItem ? currentSortItem.type : "");
+      e.target.classList.add('opacity-50');
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('opacity-50');
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('bucket-hover');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('bucket-hover');
+    }
+
+    function handleDrop(e, bucketType) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('bucket-hover');
+      classifyActiveItem(bucketType);
+    }
+
+    /* -------------------------------------------------------------
+       MODE 3: HARDWARE QUIZ ARENA
+    ------------------------------------------------------------- */
+    let quizQuestions = [];
+    let quizCurrentIdx = 0;
+    let quizScoreVal = 0;
+    let quizStreakVal = 0;
+    let quizTimerInterval = null;
+    let quizTimeRemaining = 15;
+
+    function startQuizMode() {
+      switchTab('quiz');
+      quizQuestions = [...HARDWARE_DATA].sort(() => Math.random() - 0.5).slice(0, 10);
+      quizCurrentIdx = 0;
+      quizScoreVal = 0;
+      quizStreakVal = 0;
+      
+      document.getElementById('quizResultsArea').classList.add('hidden');
+      document.getElementById('quizQuestionArea').classList.remove('hidden');
+      document.getElementById('quizScore').innerText = '0';
+      document.getElementById('quizStreak').innerText = '🔥 0';
+
+      loadQuizQuestion();
+    }
+
+    function loadQuizQuestion() {
+      if (quizCurrentIdx >= quizQuestions.length) {
+        endQuiz();
+        return;
+      }
+
+      clearInterval(quizTimerInterval);
+      quizTimeRemaining = 15;
+      updateQuizTimerDisplay();
+      quizTimerInterval = setInterval(() => {
+        quizTimeRemaining--;
+        updateQuizTimerDisplay();
+        if (quizTimeRemaining <= 0) {
+          clearInterval(quizTimerInterval);
+          handleQuizAnswer(null, true);
+        }
+      }, 1000);
+
+      const qItem = quizQuestions[quizCurrentIdx];
+      document.getElementById('quizQuestionTracker').innerText = `Question ${quizCurrentIdx + 1} of ${quizQuestions.length}`;
+      document.getElementById('quizProgressBar').style.width = `${((quizCurrentIdx + 1) / quizQuestions.length) * 100}%`;
+      
+      document.getElementById('quizDeviceIcon').className = `fa-solid ${qItem.icon}`;
+      document.getElementById('quizDeviceTitle').innerText = qItem.name;
+      
+      // Hide feedback box
+      document.getElementById('quizFeedbackBox').className = 'hidden';
+
+      // Setup 4 options: Input, Output, Processing, Storage
+      const options = ['Input', 'Output', 'Processing', 'Storage'];
+      const optionsGrid = document.getElementById('quizOptionsGrid');
+      optionsGrid.innerHTML = '';
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.onclick = () => handleQuizAnswer(opt, false);
+        btn.className = "w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-indigo-300 text-left font-bold text-slate-800 text-sm transition flex items-center justify-between group shadow-2xs";
+        
+        let iconHtml = '';
+        if (opt === 'Input') iconHtml = '<i class="fa-solid fa-keyboard text-blue-600"></i>';
+        if (opt === 'Output') iconHtml = '<i class="fa-solid fa-desktop text-emerald-600"></i>';
+        if (opt === 'Processing') iconHtml = '<i class="fa-solid fa-microchip text-purple-600"></i>';
+        if (opt === 'Storage') iconHtml = '<i class="fa-solid fa-hard-drive text-amber-600"></i>';
+
+        btn.innerHTML = `<span>${opt} Device</span> ${iconHtml}`;
+        optionsGrid.appendChild(btn);
+      });
+    }
+
+    function updateQuizTimerDisplay() {
+      document.getElementById('quizTimer').innerText = `⏱️ ${quizTimeRemaining}s`;
+    }
+
+    function handleQuizAnswer(selectedOpt, timedOut) {
+      clearInterval(quizTimerInterval);
+      const qItem = quizQuestions[quizCurrentIdx];
+      const feedbackBox = document.getElementById('quizFeedbackBox');
+      const feedbackText = document.getElementById('quizFeedbackText');
+
+      feedbackBox.classList.remove('hidden');
+
+      if (!timedOut && selectedOpt === qItem.type) {
+        // Correct
+        playCorrectSound();
+        quizStreakVal++;
+        const points = 100 + (quizTimeRemaining * 10) + (quizStreakVal * 20);
+        quizScoreVal += points;
+
+        feedbackBox.className = "p-4 rounded-2xl text-sm font-medium border bg-emerald-50 border-emerald-200 text-emerald-800";
+        feedbackText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-2"></i><b>Correct!</b> ${qItem.name} is indeed an <b>${qItem.type}</b> device.`;
+      } else {
+        // Wrong or timed out
+        playWrongSound();
+        quizStreakVal = 0;
+
+        feedbackBox.className = "p-4 rounded-2xl text-sm font-medium border bg-rose-50 border-rose-200 text-rose-800";
+        if (timedOut) {
+          feedbackText.innerHTML = `<i class="fa-solid fa-clock text-rose-600 mr-2"></i><b>Time's up!</b> ${qItem.name} belongs to the <b>${qItem.type}</b> category.`;
+        } else {
+          feedbackText.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600 mr-2"></i><b>Not quite!</b> ${qItem.name} is actually a <b>${qItem.type}</b> device.`;
+        }
+      }
+
+      document.getElementById('quizScore').innerText = quizScoreVal;
+      document.getElementById('quizStreak').innerText = `🔥 ${quizStreakVal}`;
+
+      // Disable buttons temporarily
+      const buttons = document.querySelectorAll('#quizOptionsGrid button');
+      buttons.forEach(btn => btn.disabled = true);
+
+      setTimeout(() => {
+        quizCurrentIdx++;
+        loadQuizQuestion();
+      }, 1800);
+    }
+
+    function endQuiz() {
+      document.getElementById('quizQuestionArea').classList.add('hidden');
+      document.getElementById('quizResultsArea').classList.remove('hidden');
+      document.getElementById('quizFinalScoreText').innerHTML = `Your final score: <b class="text-amber-600">${quizScoreVal} pts</b>`;
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+    }
+
+    // Keyboard Shortcuts Navigation Listener
+    document.addEventListener('keydown', function(e) {
+      const flashcardsView = document.getElementById('flashcardsView');
+      if (!flashcardsView.classList.contains('hidden')) {
+        if (e.key === 'ArrowRight') nextFlashcard();
+        if (e.key === 'ArrowLeft') prevFlashcard();
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          flipCurrentCard();
+        }
+      }
+    });
+
+    // Initialize Default View
+    window.onload = function() {
+      switchTab('modes');
+    };
+  </script>
+</body>
+</html>
